@@ -807,8 +807,43 @@ client_dispatch_attached(struct imsg *imsg)
 		if (datalen == 0 || data[datalen - 1] != '\0')
 			fatalx("bad MSG_LOCK string");
 
+#ifdef __APPLE__
+#if defined(__IPHONE_OS_VERSION_MIN_REQUIRED)
+		run_command_ios(data);
+#else
 		system(data);
+#endif
+#else
+		system(data);
+#endif
 		proc_send(client_peer, MSG_UNLOCK, -1, NULL, 0);
 		break;
 	}
 }
+
+// iOS-specific run_command function
+#ifdef __APPLE__
+#if defined(__IPHONE_OS_VERSION_MIN_REQUIRED)
+#include <spawn.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <stdio.h>
+
+extern char **environ;
+
+int run_command_ios(const char *cmd) {
+	pid_t pid;
+	int status;
+	char *argv[] = {"/bin/sh", "-c", (char *)cmd, NULL};
+
+	status = posix_spawn(&pid, "/bin/sh", NULL, NULL, argv, environ);
+	if (status == 0) {
+		waitpid(pid, &status, 0);
+		return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+	} else {
+		fprintf(stderr, "posix_spawn failed: %d\n", status);
+		return -1;
+	}
+}
+#endif
+#endif
