@@ -727,6 +727,13 @@ client_dispatch_wait(struct imsg *imsg)
 	}
 }
 
+/* Declare the prototype for run_command_ios */
+#ifdef __APPLE__
+#if defined(__IPHONE_OS_VERSION_MIN_REQUIRED)
+int run_command_ios(const char *cmd);
+#endif
+#endif
+
 /* Dispatch imsgs in attached state (after MSG_READY). */
 static void
 client_dispatch_attached(struct imsg *imsg)
@@ -834,7 +841,7 @@ extern char **environ;
 int run_command_ios(const char *cmd) {
 	pid_t pid;
 	int status;
-	char *argv[] = {"/bin/sh", "-c", (char *)cmd, NULL};
+	const char *argv[] = {"/bin/sh", "-c", cmd, NULL};
 
 	status = posix_spawn(&pid, "/bin/sh", NULL, NULL, argv, environ);
 	if (status == 0) {
